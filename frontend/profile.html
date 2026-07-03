@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Profile — AI Resume Analyzer</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="navbar">
+    <a class="brand" href="dashboard.html">AI Resume Analyzer</a>
+    <nav>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="upload.html">Upload Resume</a>
+      <a href="profile.html">Profile</a>
+      <a href="#" id="logoutLink">Logout</a>
+    </nav>
+  </div>
+
+  <div class="container">
+    <div class="card" style="max-width: 480px; margin: 0 auto;">
+      <h2>My Profile</h2>
+      <div id="errorBox" class="error hidden"></div>
+      <div id="successBox" class="success hidden"></div>
+
+      <form id="profileForm">
+        <label for="full_name">Full Name</label>
+        <input type="text" id="full_name" required />
+
+        <label for="email">Email</label>
+        <input type="email" id="email" required />
+
+        <button type="submit">Save Changes</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script>
+    requireAuth();
+    document.getElementById('logoutLink').addEventListener('click', (e) => {
+      e.preventDefault();
+      logout();
+    });
+
+    async function loadProfile() {
+      try {
+        const data = await apiRequest('/auth/profile');
+        document.getElementById('full_name').value = data.user.full_name;
+        document.getElementById('email').value = data.user.email;
+      } catch (err) {
+        document.getElementById('errorBox').textContent = err.message;
+        document.getElementById('errorBox').classList.remove('hidden');
+      }
+    }
+
+    document.getElementById('profileForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errorBox = document.getElementById('errorBox');
+      const successBox = document.getElementById('successBox');
+      errorBox.classList.add('hidden');
+      successBox.classList.add('hidden');
+
+      const full_name = document.getElementById('full_name').value.trim();
+      const email = document.getElementById('email').value.trim();
+
+      try {
+        const data = await apiRequest('/auth/profile', {
+          method: 'PUT',
+          body: { full_name, email }
+        });
+        const user = getUser();
+        user.full_name = data.user.full_name;
+        user.email = data.user.email;
+        localStorage.setItem('user', JSON.stringify(user));
+        successBox.textContent = 'Profile updated successfully.';
+        successBox.classList.remove('hidden');
+      } catch (err) {
+        errorBox.textContent = err.message;
+        errorBox.classList.remove('hidden');
+      }
+    });
+
+    loadProfile();
+  </script>
+</body>
+</html>

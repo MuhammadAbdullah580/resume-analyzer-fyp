@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Admin — Reports</title>
+<link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+  <div class="navbar">
+    <a class="brand" href="users.html">AI Resume Analyzer — Admin</a>
+    <nav>
+      <a href="users.html">Users</a>
+      <a href="reports.html">Reports</a>
+      <a href="#" id="logoutLink">Logout</a>
+    </nav>
+  </div>
+
+  <div class="container">
+    <h1>Reports & Statistics</h1>
+
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card"><div class="num">—</div><div class="lbl">Total Users</div></div>
+      <div class="stat-card"><div class="num">—</div><div class="lbl">Total Resumes Analyzed</div></div>
+      <div class="stat-card"><div class="num">—</div><div class="lbl">Average Score</div></div>
+    </div>
+
+    <div class="card">
+      <h3>Most Common Missing Sections</h3>
+      <div id="missingBox"><p style="color: var(--muted);">Loading...</p></div>
+    </div>
+
+    <div class="card">
+      <h3>All Uploaded Resumes</h3>
+      <div id="resumesBox"><p style="color: var(--muted);">Loading...</p></div>
+    </div>
+  </div>
+
+  <script src="../js/api.js"></script>
+  <script>
+    requireAdmin();
+    document.getElementById('logoutLink').addEventListener('click', (e) => {
+      e.preventDefault();
+      logout();
+    });
+
+    async function loadReports() {
+      try {
+        const data = await apiRequest('/admin/reports');
+        document.getElementById('statsGrid').innerHTML = `
+          <div class="stat-card"><div class="num">${data.totalUsers}</div><div class="lbl">Total Users</div></div>
+          <div class="stat-card"><div class="num">${data.totalResumes}</div><div class="lbl">Total Resumes Analyzed</div></div>
+          <div class="stat-card"><div class="num">${data.averageScore}</div><div class="lbl">Average Score</div></div>
+        `;
+
+        const missingBox = document.getElementById('missingBox');
+        if (!data.mostMissingSections.length) {
+          missingBox.innerHTML = '<p style="color: var(--muted);">No data yet.</p>';
+        } else {
+          const rows = data.mostMissingSections.map(m => `
+            <tr><td style="text-transform:capitalize;">${m.section}</td><td>${m.count}</td></tr>
+          `).join('');
+          missingBox.innerHTML = `
+            <table>
+              <thead><tr><th>Section</th><th>Times Missing</th></tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          `;
+        }
+      } catch (err) {
+        document.getElementById('statsGrid').innerHTML = `<p class="error">${err.message}</p>`;
+      }
+    }
+
+    async function loadAllResumes() {
+      const box = document.getElementById('resumesBox');
+      try {
+        const data = await apiRequest('/admin/resumes');
+        if (!data.resumes.length) {
+          box.innerHTML = '<p style="color: var(--muted);">No resumes uploaded yet.</p>';
+          return;
+        }
+        const rows = data.resumes.map(r => `
+          <tr>
+            <td>${r.full_name}</td>
+            <td>${r.email}</td>
+            <td>${r.file_name}</td>
+            <td>${new Date(r.upload_date).toLocaleString()}</td>
+          </tr>
+        `).join('');
+        box.innerHTML = `
+          <table>
+            <thead><tr><th>User</th><th>Email</th><th>File</th><th>Uploaded</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        `;
+      } catch (err) {
+        box.innerHTML = `<p class="error">${err.message}</p>`;
+      }
+    }
+
+    loadReports();
+    loadAllResumes();
+  </script>
+</body>
+</html>

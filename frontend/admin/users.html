@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Admin — Users</title>
+<link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+  <div class="navbar">
+    <a class="brand" href="users.html">AI Resume Analyzer — Admin</a>
+    <nav>
+      <a href="users.html">Users</a>
+      <a href="reports.html">Reports</a>
+      <a href="#" id="logoutLink">Logout</a>
+    </nav>
+  </div>
+
+  <div class="container">
+    <h1>User Management</h1>
+
+    <div class="card">
+      <input type="text" id="searchInput" placeholder="Search by name or email..." style="margin-bottom: 16px;" />
+      <div id="usersBox"><p style="color: var(--muted);">Loading...</p></div>
+    </div>
+  </div>
+
+  <script src="../js/api.js"></script>
+  <script>
+    requireAdmin();
+    document.getElementById('logoutLink').addEventListener('click', (e) => {
+      e.preventDefault();
+      logout();
+    });
+
+    async function loadUsers(search = '') {
+      const box = document.getElementById('usersBox');
+      try {
+        const data = await apiRequest(`/admin/users?search=${encodeURIComponent(search)}`);
+        if (!data.users.length) {
+          box.innerHTML = '<p style="color: var(--muted);">No users found.</p>';
+          return;
+        }
+        const rows = data.users.map(u => `
+          <tr>
+            <td>${u.full_name}</td>
+            <td>${u.email}</td>
+            <td>${u.role}</td>
+            <td>${new Date(u.created_at).toLocaleDateString()}</td>
+          </tr>
+        `).join('');
+        box.innerHTML = `
+          <table>
+            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        `;
+      } catch (err) {
+        box.innerHTML = `<p class="error">${err.message}</p>`;
+      }
+    }
+
+    let debounceTimer;
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => loadUsers(e.target.value.trim()), 300);
+    });
+
+    loadUsers();
+  </script>
+</body>
+</html>

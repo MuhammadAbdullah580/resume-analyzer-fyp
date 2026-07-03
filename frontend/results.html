@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Analysis Results — AI Resume Analyzer</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="navbar">
+    <a class="brand" href="dashboard.html">AI Resume Analyzer</a>
+    <nav>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="upload.html">Upload Resume</a>
+      <a href="profile.html">Profile</a>
+      <a href="#" id="logoutLink">Logout</a>
+    </nav>
+  </div>
+
+  <div class="container" id="resultContainer">
+    <p style="color: var(--muted);">Loading results...</p>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script>
+    requireAuth();
+    document.getElementById('logoutLink').addEventListener('click', (e) => {
+      e.preventDefault();
+      logout();
+    });
+
+    function scoreColor(score) {
+      if (score >= 70) return 'var(--success)';
+      if (score >= 40) return 'var(--warning)';
+      return 'var(--danger)';
+    }
+
+    async function loadResult() {
+      const params = new URLSearchParams(window.location.search);
+      const resumeId = params.get('resumeId');
+      const container = document.getElementById('resultContainer');
+
+      if (!resumeId) {
+        container.innerHTML = '<p class="error">No resume specified.</p>';
+        return;
+      }
+
+      try {
+        const data = await apiRequest(`/resumes/${resumeId}/result`);
+        const r = data.result;
+
+        const recItems = r.recommendations.map(rec => {
+          const isCritical = /critical/i.test(rec);
+          return `<li class="${isCritical ? 'critical' : ''}">${rec}</li>`;
+        }).join('');
+
+        container.innerHTML = `
+          <h1>Analysis Results</h1>
+          <p style="color: var(--muted);">${data.resume.file_name}</p>
+
+          <div class="card" style="text-align:center;">
+            <div class="score-circle" style="background:${scoreColor(r.overall_score)};">
+              ${r.overall_score}/100
+            </div>
+            <h3>Overall Resume Score</h3>
+
+            <div class="score-breakdown">
+              <div class="score-item"><div class="label">Skills</div><div class="value">${r.skills_score}/30</div></div>
+              <div class="score-item"><div class="label">Education</div><div class="value">${r.education_score}/20</div></div>
+              <div class="score-item"><div class="label">Experience</div><div class="value">${r.experience_score}/30</div></div>
+              <div class="score-item"><div class="label">Projects</div><div class="value">${r.projects_score}/20</div></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Recommendations</h3>
+            <ul class="rec-list">${recItems}</ul>
+          </div>
+
+          <button onclick="window.print()">Download / Print Report</button>
+        `;
+      } catch (err) {
+        container.innerHTML = `<p class="error">${err.message}</p>`;
+      }
+    }
+
+    loadResult();
+  </script>
+</body>
+</html>

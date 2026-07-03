@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dashboard — AI Resume Analyzer</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="navbar">
+    <a class="brand" href="dashboard.html">AI Resume Analyzer</a>
+    <nav>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="upload.html">Upload Resume</a>
+      <a href="profile.html">Profile</a>
+      <a href="#" id="logoutLink">Logout</a>
+    </nav>
+  </div>
+
+  <div class="container">
+    <h1 id="welcomeMsg">Welcome</h1>
+    <p style="color: var(--muted);">Here is your resume upload history.</p>
+
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <h3 style="margin:0;">Your Resumes</h3>
+        <a class="btn" href="upload.html">+ Upload New Resume</a>
+      </div>
+      <div id="historyBox">
+        <p style="color: var(--muted);">Loading...</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script>
+    requireAuth();
+    const user = getUser();
+    document.getElementById('welcomeMsg').textContent = `Welcome, ${user.full_name}`;
+
+    document.getElementById('logoutLink').addEventListener('click', (e) => {
+      e.preventDefault();
+      logout();
+    });
+
+    async function loadHistory() {
+      const box = document.getElementById('historyBox');
+      try {
+        const data = await apiRequest('/resumes/history');
+        if (!data.resumes.length) {
+          box.innerHTML = '<p style="color: var(--muted);">No resumes uploaded yet.</p>';
+          return;
+        }
+        const rows = data.resumes.map(r => `
+          <tr>
+            <td>${r.file_name}</td>
+            <td>${r.file_type.toUpperCase()}</td>
+            <td>${new Date(r.upload_date).toLocaleString()}</td>
+            <td><a class="btn btn-secondary" href="results.html?resumeId=${r.id}">View Result</a></td>
+          </tr>
+        `).join('');
+        box.innerHTML = `
+          <table>
+            <thead><tr><th>File</th><th>Type</th><th>Uploaded</th><th></th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        `;
+      } catch (err) {
+        box.innerHTML = `<p class="error">${err.message}</p>`;
+      }
+    }
+
+    loadHistory();
+  </script>
+</body>
+</html>
